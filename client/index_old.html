@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script>
+        let messageData = [];
+
+        // Функция для извлечения ссылок из текста
+        function extractLinksFromText(text) {
+            const urlRegex = /https?:\/\/[^\s]+/g;
+            const matches = text.match(urlRegex);
+            return matches || [];
+        }
+
+        // Функция для обработки новых сообщений
+        async function handleNewMessage(messageElement) {
+
+            const messageIdMatch = messageElement.querySelector('[data-mid]:not([data-mid=""])');
+            const messageId = messageIdMatch ? messageIdMatch.getAttribute('data-mid') : null;
+            const unixTime = Math.floor(Date.now() / 1000); // Получаем текущий Unix timestamp
+
+            const newMessageData = {
+                ...extractMessageData(messageElement),
+                message_id: messageId,
+                time: unixTime,
+            };
+
+            messageData.push(newMessageData);
+
+            const url = 'https://poster-p2t2.onrender.com/process';
+            //const url = 'http://localhost:3000/process';
+
+            try {
+                // Отправляем POST-запрос
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify([newMessageData]),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                // Печатаем результат в консоль
+                console.log('Новое сообщение отправлено на сервер. Ответ сервера:', result);
+            } catch (error) {
+                console.error('Ошибка при отправке сообщения на сервер:', error);
+            }
+        }
+
+        function extractMessageData(messageElement) {
+            const sender = messageElement.querySelector('.peer-title')?.textContent.trim() || '';
+            const subheader = messageElement.querySelector('.reply-subtitle span')?.textContent.trim() || '';
+
+            const messageContentNode = messageElement.querySelector('.message .translatable-message');
+            let messageContent = '';
+            let links = [];
+
+            if (messageContentNode) {
+                // Клонируем узел, чтобы работать с копией
+                const clonedNode = messageContentNode.cloneNode(true);
+
+                // Извлекаем все ссылки и заменяем их на [link-{id}]
+                let linkIndex = 1;
+                clonedNode.querySelectorAll('a').forEach(link => {
+                    const href = link.getAttribute('href');
+                    if (href) {
+                        links.push(href.trim()); // Добавляем ссылку в массив
+                        const placeholder = `[link-${linkIndex}]`;
+                        link.replaceWith(document.createTextNode(placeholder)); // Заменяем ссылку на [link-{id}]
+                        linkIndex++;
+                    }
+                });
+
+                // Получаем текстовое содержимое без HTML
+                messageContent = clonedNode.textContent.trim();
+            }
+
+            const senderId = messageElement.querySelector('.avatar')?.dataset.peerId || '';
+
+            return {
+                sender: escapeSpecialChars(sender),
+                subheader: escapeSpecialChars(subheader),
+                messageContent: escapeSpecialChars(messageContent),
+                links: links.map(escapeSpecialChars), // Экранируем ссылки
+                sender_id: escapeSpecialChars(senderId),
+            };
+        }
+
+        // Пример реализации функции экранирования
+        function escapeSpecialChars(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</head>
+<body>
+    <script>
+        function sendMessage()
+        {
+            const messageNode = document.querySelector('.bubbles-group');
+            console.log(extractMessageData(messageNode));
+            handleNewMessage(messageNode);
+        }
+    </script>
+    <div class="bubbles-group"><div class="bubbles-group-avatar-container"><div class="avatar avatar-like avatar-40 avatar-gradient bubbles-group-avatar user-avatar" data-peer-id="896668584"><img class="avatar-photo" src="blob:https://web.telegram.org/e8fafe59-d00a-466a-b9ec-1287113b36c0"></div></div><div data-mid="4297597591" data-peer-id="-1032422089" data-timestamp="1734710410" class="bubble is-reply is-in can-have-tail is-group-first is-group-last" data-reply-to-peer-id="-1032422089" data-reply-to-mid="4297597590" style="--peer-color-rgb: var(--peer-0-color-rgb); --peer-border-background: var(--peer-0-border-background);"><div class="bubble-content-wrapper"><div class="bubble-content"><div class="colored-name name floating-part" data-peer-id="896668584" dir="auto"><div class="title-flex"><span class="peer-title" dir="auto" data-peer-id="896668584" data-with-premium-icon="1">BaliForum Ботя</span><span class="bubble-name-rank"><span class="i18n">admin</span></span></div></div><div class="reply quote-like quote-like-hoverable quote-like-border rp mb-shorter" dir="auto" style="--peer-color-rgb: var(--peer-6-color-rgb); --peer-border-background: var(--peer-6-border-background);"><div class="c-ripple"></div><div class="reply-content"><div class="reply-title" dir="auto"><span class="peer-title" dir="auto" data-peer-id="645263625" data-dialog="0" data-only-first-name="0" data-plain-text="0" data-from-name="0">Виктория Заксаускене</span></div><div class="reply-subtitle" dir="auto"><span class="translatable-message">Добрый вечер, летим на Бали на три недели, обратный билет в Москву есть. На неделю надо  слетать на ...</span></div></div></div><div class="message spoilers-container" dir="auto"><span class="translatable-message">Здравствуйте<span class="emoji emoji-native">❤️</span>
+
+        Итак, обратный билет требуется при регистрации на рейс до Индонезии. Как правило, билет спрашивают на регистрации на рейс в пункте отправления. Однако в последнее время участились случаи, когда офицеры погранконтроля проверяют обратный билет и по прибытии на Бали. Причем, бронь их не всегда устраивает и приводит к депортации ее обладателя.
+        
+        Если вы все же решили лететь с бронью, то можно купить реальную бронь на <a class="anchor-url" href="https://kupitrip.online/ref_link/54ddb117500076bed8798d90a2d3b520" target="_blank" rel="noopener noreferrer" onclick="showMaskedAlert(this)"> kupitrip.online</a>. Однако следует помнить, что, оформляя бронь, вы идете на риск.
+        
+        Также рекомендую сервис <a class="anchor-url" href="https://onwardticket.com/mybalitrips" target="_blank" rel="noopener noreferrer" onclick="showMaskedAlert(this)">Onwardticket</a>. Там можно оформить бронь за $14.
+        
+        Еще один рабочий вариант - купить возвратный билет. Например, у Malaysian airlines с тарифом flex. Купить с оплатой картой МИР можно на сайте <a class="anchor-url" href="https://trip.com" target="_blank" rel="noopener noreferrer">trip.com</a>.
+        
+        Билет не должен быть обязательно обратно в тот пункт, из которого вы прилетели в Индонезию. Он может быть и в третью страну. Например, в Турцию, Таиланд, Сингапур и тд. Для влетающих по визе КИТАС обратный билет не нужен.
+        
+        Дата обратного билета должна быть в пределах срока действия вашей визы без учета продлений. Если вы прибываете по VoA, то не позднее 30 дней после влета в Индонезию.
+        
+        <strong>Узнать подробнее, как приобрести обратный билет, можно в </strong><a class="anchor-url" href="https://baliforum.ru/p/nuzhen-li-obratnyy-bilet-i-kak-ego-sdelat" target="_blank" rel="noopener noreferrer" onclick="showMaskedAlert(this)"><strong>обсуждении</strong></a><strong>  на БалиФоруме.</strong></span><span class="time"><span class="i18n" dir="auto">20:00</span><div class="time-inner" title="20 December 2024, 20:00:10"><span class="i18n" dir="auto">20:00</span></div></span><span class="clearfix"></span></div><svg viewBox="0 0 11 20" width="11" height="20" class="bubble-tail"><use href="#message-tail-filled"></use></svg></div></div></div></div>
+
+    <button onclick="sendMessage()">click</button>
+</body>
+</html>
