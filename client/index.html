@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script>
+        let messageData = [];
+
+        // Функция для экранирования специальных символов в JSON
+        function escapeSpecialChars(str) {
+            return str
+                .replace(/\\/g, "\\\\") // Экранируем обратный слэш
+                .replace(/\"/g, '\\\"')  // Экранируем двойные кавычки
+                .replace(/\n/g, "\\n")    // Экранируем переносы строк
+                .replace(/\r/g, "\\r")    // Экранируем возвраты каретки
+                .replace(/\t/g, "\\t");   // Экранируем табуляции
+        }
+
+        // Функция для извлечения ссылок из текста
+        function extractLinksFromText(text) {
+            const urlRegex = /https?:\/\/[^\s]+/g;
+            const matches = text.match(urlRegex);
+            return matches || [];
+        }
+
+        // Функция для обработки новых сообщений
+        async function handleNewMessage(messageElement) {
+            const messageIdMatch = messageElement.id.match(/^message-(\d+)$/);
+            const messageId = messageIdMatch ? parseInt(messageIdMatch[1], 10) : null;
+            const unixTime = Math.floor(Date.now() / 1000); // Получаем текущий Unix timestamp
+
+            const newMessageData = {
+                ...extractMessageData(messageElement),
+                message_id: messageId,
+                time: unixTime,
+            };
+
+            messageData.push(newMessageData);
+
+            const url = 'http://localhost:3000/process';
+
+            try {
+                // Отправляем POST-запрос
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify([newMessageData]),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                // Печатаем результат в консоль
+                console.log('Новое сообщение отправлено на сервер. Ответ сервера:', result);
+            } catch (error) {
+                console.error('Ошибка при отправке сообщения на сервер:', error);
+            }
+        }
+
+        function sendMessage(id)
+        {
+            const messageNode = document.querySelector('#message-' + id);
+            console.log(extractMessageData(messageNode));
+            handleNewMessage(messageNode);
+        }
+    </script>
+
+    <script>
+        function extractMessageData(messageElement) {
+            const sender = messageElement.querySelector('.sender-title')?.textContent.trim() || '';
+            const subheader = messageElement.querySelector('.embedded-text-wrapper span')?.textContent.trim() || '';
+
+            const messageContentNode = messageElement.querySelector('.text-content');
+            let messageContent = '';
+            let links = [];
+
+            if (messageContentNode) {
+                // Клонируем узел, чтобы работать с копией
+                const clonedNode = messageContentNode.cloneNode(true);
+
+                // Извлекаем все ссылки и заменяем их на [link-{id}]
+                let linkIndex = 1;
+                clonedNode.querySelectorAll('a').forEach(link => {
+                    const href = link.getAttribute('href');
+                    if (href) {
+                        links.push(href.trim()); // Добавляем ссылку в массив
+                        const placeholder = `[link-${linkIndex}]`;
+                        link.replaceWith(document.createTextNode(placeholder)); // Заменяем ссылку на [link-{id}]
+                        linkIndex++;
+                    }
+                });
+
+                // Получаем текстовое содержимое без HTML
+                messageContent = clonedNode.textContent.trim();
+            }
+
+            const senderId = messageElement.querySelector('.Avatar')?.dataset.peerId || '';
+
+            return {
+                sender: escapeSpecialChars(sender),
+                subheader: escapeSpecialChars(subheader),
+                messageContent: escapeSpecialChars(messageContent),
+                links: links.map(escapeSpecialChars), // Экранируем ссылки
+                sender_id: escapeSpecialChars(senderId),
+            };
+        }
+
+        // Пример реализации функции экранирования
+        function escapeSpecialChars(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</head>
+<body>
+    <div id="message-111406" class="shown open Message message-list-item first-in-group allow-selection last-in-group was-edited" data-message-id="111406"><div class="bottom-marker" data-message-id="111406" data-should-update-views="false"></div><div class="message-select-control"></div><div class="Avatar size-small peer-color-9 interactive" data-peer-id="120643768" style=""><div class="inner"><img src="blob:https://web.telegram.org/b34fba33-6ab0-426b-bdb8-bcd6f74f6fbd" class="Avatar__media avatar-media opacity-transition slow open shown" alt="bad friend | moni" decoding="async" draggable="false"></div></div><div class="message-content-wrapper can-select-text"><div class="message-content peer-color-9 text has-shadow has-solid-background has-appendix has-footer" dir="auto" style=""><div class="content-inner" dir="auto"><div class="message-title" dir="ltr"><span class="message-title-name-container interactive" dir="ltr"><span class="forward-title-container"></span><span class="message-title-name"><span class="sender-title">bad friend | moni</span><div class="CEFe1FhH custom-emoji emoji" data-entity-type="MessageEntityCustomEmoji" data-document-id="5273726914681380081" data-alt="👁"><img src="blob:https://web.telegram.org/71ebc27b-3f3a-4edf-8b73-a86b60bc7f3a" class="gYSfUe37 O_TaDxWg sticker-media opacity-transition slow shown open" alt="" draggable="false"></div></span></span><div class="title-spacer"></div><span class="admin-title" dir="auto">admin</span></div><div class="text-content clearfix with-meta" dir="auto">Ну ломбард с бабилоном вместе же идут в EtherFi<span class="MessageMeta" dir="ltr" data-ignore-on-paste="true"><span class="message-time" title="Dec 20, 2024, 13:38:24
+        Edited: Dec 20, 2024, 13:38:40">edited 13:38</span></span></div></div><div class="message-action-buttons"></div><svg width="9" height="20" class="svg-appendix"><defs><filter x="-50%" y="-14.7%" width="200%" height="141.2%" filterUnits="objectBoundingBox" id="messageAppendix"><feOffset dy="1" in="SourceAlpha" result="shadowOffsetOuter1"></feOffset><feGaussianBlur stdDeviation="1" in="shadowOffsetOuter1" result="shadowBlurOuter1"></feGaussianBlur><feColorMatrix values="0 0 0 0 0.0621962482 0 0 0 0 0.138574144 0 0 0 0 0.185037364 0 0 0 0.15 0" in="shadowBlurOuter1"></feColorMatrix></filter></defs><g fill="none" fill-rule="evenodd"><path d="M3 17h6V0c-.193 2.84-.876 5.767-2.05 8.782-.904 2.325-2.446 4.485-4.625 6.48A1 1 0 003 17z" fill="#000" filter="url(#messageAppendix)"></path><path d="M3 17h6V0c-.193 2.84-.876 5.767-2.05 8.782-.904 2.325-2.446 4.485-4.625 6.48A1 1 0 003 17z" fill="FFF" class="corner"></path></g></svg><div class="quick-reaction"><img class="ReactionStaticEmoji opacity-transition slow open shown" src="blob:https://web.telegram.org/dc46210c-6580-4e38-9204-a4449d7d913c" alt="Red Heart" draggable="false" style="width: 28px; height: 28px;"></div></div></div></div>
+
+
+    <button onclick="sendMessage(111406)">click</button>
+</body>
+</html>
