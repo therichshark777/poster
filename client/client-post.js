@@ -71,7 +71,8 @@ async function handleNewMessage(messageElement) {
 
     messageData.push(newMessageData);
 
-    const url = 'http://localhost:3000/process';
+    const url = 'https://poster-p2t2.onrender.com/process';
+    //const url = 'http://localhost:3000/process';
 
     try {
         // Отправляем POST-запрос
